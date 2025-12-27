@@ -124,10 +124,18 @@ class Cfg:
         self.pay_mul(1)
 
     def pay_miller_loop(self):
-        for val in pseudo_binary_encoding:
+        for val in pseudo_binary_encoding[63::-1]:
             self.pay_miller_double()
             if val != 0:
                 self.pay_miller_add()
+        # frobenius twists of Q
+        self.pay_base_field_check(4) # to parse two coordinates into G2 point
+        # after that, Frobenius is linear
+        # multiply 4 elements by 12 coeffs of 1st frobenius and 12 coeffs of 2nd one
+        self.pay_batch_mul(24, 4)
+        # actually this definitely can be double-batched using cross-products...
+        self.pay_miller_add()
+        self.pay_miller_add()
 
     ### pay exponentiation in Fq12
     ### method - compute all x^2^k, then multiply ones that
@@ -148,7 +156,7 @@ class Cfg:
 def div_ceil(a, b):
     return (a + b - 1) // b
 
-cfg = Cfg(lookup_size=8, batching_level=1)
+cfg = Cfg(lookup_size=1, batching_level=0)
 cfg.pay_prelude()
 cfg.pay_miller_loop()
 cfg.pay_miller_loop()
