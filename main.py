@@ -188,9 +188,7 @@ class Cfg:
     def ciphertext_n_bytes(self):
         return ((2 * self.n_gates + 1) ** 2 * self.n_wtns * 32)
 
-def div_ceil(a, b):
-    return (a + b - 1) // b
-
 cfg = Cfg()
 cfg.verify_full()
+print("wtns: {}, n_gates: {}".format(cfg.n_wtns, cfg.n_gates))
 print("{x} TB".format(x = cfg.ciphertext_n_bytes() // 2**40))
