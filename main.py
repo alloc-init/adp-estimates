@@ -92,7 +92,7 @@ class Cfg:
         self.miller_loop()
         self.miller_loop()
         self.miller_loop()
-        self.odd_exp_varpow(130*7)
+        self.odd_exp_varpow(126*4) # multiplying by z^4 is somehow best done by multiplying by z four times
         self.mul_sq()
         self.mul_sq()
         self.mul_sq()
@@ -124,17 +124,7 @@ class Cfg:
             self.basefield_check()
     
     def verify_arith(self):
-        self.n_gates += 1
-        self.n_wtns += 254
-        self.n_gates += 254 # z^2 fully fits
-
-        self.n_gates += 4
-        self.n_wtns += 130 * 5 # computing z^3 in a non-reduced form \sum a_i 2^{64 i}
-        self.n_gates += 130 * 5 # 5 limbs (because z is 2 limb and z^2 is 4 limb), each limb is 128 + < 10
-
-        self.n_gates += 4
-        self.n_wtns += 130 * 7
-        self.n_gates += 130 * 7 # computing z^4
+        self.basefield_check() # obtain z via truncation of poseidon output
 
         # multiplying p_i' by phi^i
         # p_0'
@@ -144,10 +134,10 @@ class Cfg:
         self.odd_exp_varpow(126)
         # p_2'
         self.odd_exp_varpow(254)
-        self.odd_exp_varpow(254)
+        self.odd_exp_varpow(126*2)
         # p_3'
         self.odd_exp_varpow(254)
-        self.odd_exp_varpow(130 * 5)
+        self.odd_exp_varpow(126*3)
 
         for i in range(4):
             self.odd_exp_varpow(254) # v_i psi^i
@@ -156,21 +146,14 @@ class Cfg:
             self.mul_sq()
 
         # checking v1 v2 - v3 = z (v0 vZ + u + z)
+        # in the exponent
         
-        # v1v2 - v3
-        self.n_gates += 4
-        self.n_wtns += 130 * 7
-        self.n_gates += 130 * 7
-
-        # v0vZ + u + z
-        self.n_gates += 4
-        self.n_wtns += 130 * 7
-        self.n_gates += 130 * 7
-
-        # varpows
-        self.odd_exp_varpow(130 * 7)
-        self.odd_exp_varpow(130 * 7)
+        self.odd_exp_varpow(256 * 2)
+        self.odd_exp_varpow(256)
         self.odd_exp_varpow(128)
+        self.odd_exp_varpow(256 * 2)
+        # u+z can be done via single varpow
+        self.odd_exp_varpow(256)
 
     def verify_full(self):
         (w, g) = (self.n_wtns, self.n_gates)
