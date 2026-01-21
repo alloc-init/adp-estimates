@@ -92,7 +92,7 @@ class Cfg:
         self.miller_loop()
         self.miller_loop()
         self.miller_loop()
-        self.odd_exp_varpow(126*4) # multiplying by z^4 is somehow best done by multiplying by z four times
+        self.odd_exp_varpow(128) # multiplying by z
         self.mul_sq()
         self.mul_sq()
         self.mul_sq()
@@ -101,8 +101,6 @@ class Cfg:
         self.odd_exp_varpow(254)
         self.odd_exp_varpow(254)
         self.odd_exp_varpow(254)
-        self.odd_exp_varpow(254)
-        self.mul_sq()
         self.mul_sq()
         self.mul_sq()
         self.mul_sq()
@@ -125,34 +123,13 @@ class Cfg:
     
     def verify_arith(self):
         self.basefield_check() # obtain z via truncation of poseidon output
-
-        # multiplying p_i' by phi^i
-        # p_0'
-        self.odd_exp_varpow(254)
-        # p_1'
-        self.odd_exp_varpow(254)
-        self.odd_exp_varpow(126)
-        # p_2'
-        self.odd_exp_varpow(254)
-        self.odd_exp_varpow(126*2)
-        # p_3'
-        self.odd_exp_varpow(254)
-        self.odd_exp_varpow(126*3)
-
-        for i in range(4):
-            self.odd_exp_varpow(254) # v_i psi^i
-            self.basefield_check() # check v_i
-        for i in range(6):
-            self.mul_sq()
-
-        # checking v1 v2 - v3 = z^3 (v0 vZ + u + z)
-        # in the exponent
-        
+        # checking vA^2 - vC = vH vZ + u
+        # in the exponent        
         self.odd_exp_varpow(256 * 2)
         self.odd_exp_varpow(256)
         self.odd_exp_varpow(256 * 2)
         self.odd_exp_varpow(256)
-        self.odd_exp_varpow(128 * 3)
+
 
     def verify_full(self):
         (w, g) = (self.n_wtns, self.n_gates)
@@ -162,7 +139,7 @@ class Cfg:
         (w, g) = (self.n_wtns, self.n_gates)
         self.basefield_check() #check u
         for i in range(4):
-            self.basefield_check() # check p_i
+            self.basefield_check() # check v_A, v_C, v_H, v_Z
         print("Glue:")
         print("wtns = {}, gates = {}".format(self.n_wtns - w, self.n_gates - g))
         (w, g) = (self.n_wtns, self.n_gates)
