@@ -145,15 +145,14 @@ class Cfg:
         for i in range(6):
             self.mul_sq()
 
-        # checking v1 v2 - v3 = z (v0 vZ + u + z)
+        # checking v1 v2 - v3 = z^3 (v0 vZ + u + z)
         # in the exponent
         
         self.odd_exp_varpow(256 * 2)
         self.odd_exp_varpow(256)
-        self.odd_exp_varpow(128)
         self.odd_exp_varpow(256 * 2)
-        # u+z can be done via single varpow
         self.odd_exp_varpow(256)
+        self.odd_exp_varpow(128 * 3)
 
     def verify_full(self):
         (w, g) = (self.n_wtns, self.n_gates)
