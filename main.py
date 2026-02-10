@@ -167,4 +167,65 @@ class Cfg:
 cfg = Cfg()
 cfg.verify_full()
 print("wtns: {}, n_gates: {}".format(cfg.n_wtns, cfg.n_gates))
-print("{x} TB".format(x = cfg.ciphertext_n_bytes() // 2**40))
+print("Ciphertext size: {x} TB".format(x = cfg.ciphertext_n_bytes() // 2**40))
+print()
+
+
+print("* base costs")
+# Benchmarked bn254 fp12 multiplication using the mcl library on M3 MacBook Air
+ns_per_field_mul = 700 
+print(f"- bn254 fp12 mul cost = {ns_per_field_mul}ns (mcl library on m3 macbook air)")
+
+# Since witness is in fp12 and ciphertext is in fp, we don't have to compute full fp12 multiplication to compute E.
+# It should be significantly cheaper to compute fp x fp12 than fp12 x fp12.
+# - ChatGPT thinks it is 4.5x cheaper.
+ns_per_scalar_mul = ns_per_field_mul / 4.5
+print(f"- bn254 fp x fp12 mul cost ~= {ns_per_scalar_mul:.2f}ns (4.5x cheaper than fp12 mul)")
+
+ns_per_inv = 2500
+print(f"- bn254 fp12 inv cost = {ns_per_inv}ns (mcl library on m3 macbook air)")
+
+print()
+
+##########################################
+# Decryption main costs                  #
+##########################################
+# 1. compute E <- Mhat(1|x)
+# 2. solve for t: det(E - t * x0 ...) = 0
+print("* serial costs")
+
+# In order to compute E, you have to compute (2*n+1)^2 inner products with the witness, which is exactly the size of M.
+M_size = (2 * cfg.n_gates + 1) ** 2 * cfg.n_wtns
+print(f"- number of scalar muls to compute E = {M_size}")
+
+mins_to_compute_e = int(M_size * ns_per_scalar_mul / 1_000_000_000 / 60)
+print(f"- serial time to compute E = {mins_to_compute_e} min")
+
+# E can be computed streaming by 
+
+# Determinant computed with gaussian elimination uses n^3/3 multiplications.
+det_num_field_mults = (2*cfg.n_gates+1) ** 3 / 3
+print(f"- number of fp12 mults for computing determinant = n^3 / 3 = {det_num_field_mults}")
+# Determinant computed with gaussian elimination uses n(n-1)/2 inversions.
+det_num_invs = cfg.n_gates * (cfg.n_gates-1) / 2
+print(f"- number of fp12 inversions for computing determinant = n(n-1)/2 = {det_num_invs}")
+det_total_min = int((det_num_field_mults * ns_per_field_mul + det_num_invs * ns_per_inv) / 1_000_000_000 / 60)
+print(f"- serial time to compute determinant = {det_total_min} min")
+
+print()
+
+print("* cost to compute parallel decryption in 10m")
+
+# * A Parallel Algorithm for Calculation of Large Determinants with High Accuracy for GPUs and MPI clusters
+# - reports no advantages for gpu
+# - large cpu cluster speedup is linear with number of cores
+# - https://arxiv.org/abs/1308.1536
+
+print("- determinant compute speedup linear with number of cores")
+print("- computing E is embarassingly parallel")
+print(f"- how many cores does it take to compute both E and det in 10m?")
+print(f"    - E_minutes / n + det_minutes / n = 10")
+ncores = int((det_total_min + mins_to_compute_e)/10)
+print(f"    - n = {ncores}")
+print(f"- how much storage does each core require?")
+print(f"    - ciphertext_size / n = {cfg.ciphertext_n_bytes() / ncores / 2**30:.2f} gb")
