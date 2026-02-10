@@ -201,8 +201,6 @@ print(f"- number of scalar muls to compute E = {M_size}")
 mins_to_compute_e = int(M_size * ns_per_scalar_mul / 1_000_000_000 / 60)
 print(f"- serial time to compute E = {mins_to_compute_e} min")
 
-# E can be computed streaming by 
-
 # Determinant computed with gaussian elimination uses n^3/3 multiplications.
 det_num_field_mults = (2*cfg.n_gates+1) ** 3 / 3
 print(f"- number of fp12 mults for computing determinant = n^3 / 3 = {det_num_field_mults}")
