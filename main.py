@@ -1,3 +1,5 @@
+import math
+
 # This (very simple) script computes costs of Miller loop and final exponent under various assumptions.
 # Assumptions / choices that we have:
 # 1. Permutation program is safe (bool)
@@ -227,3 +229,15 @@ ncores = int((det_total_min + mins_to_compute_e)/10)
 print(f"    - n = {ncores}")
 print(f"- how much storage does each core require?")
 print(f"    - ciphertext_size / n = {cfg.ciphertext_n_bytes() / ncores / 2**30:.2f} gb")
+print(f"- how many 500gb/s ciphertext storage locations do you need?")
+print(f"    - since E is so parallel, you can stream M to the shards, you have as much time to send the ciphertext as it takes to compute E")
+parallel_mins_to_compute_e = mins_to_compute_e/ncores
+total_shards = ncores / 256
+print(f"    - assume each shard has 256 cpu cores, so you have {total_shards} total shards")
+print(f"    - with n={ncores}, each shard computing E takes {parallel_mins_to_compute_e:.2f} min")
+print(f"    - assume 500gb/s hpc-level network")
+print(f"    - total ciphertext size is {cfg.ciphertext_n_bytes() // 2**30} GB")
+print(f"    - so you need {(cfg.ciphertext_n_bytes() // 2**30)} / (n_data_locs * 500) = {parallel_mins_to_compute_e:.2f} * 60")
+print(f"        - {(cfg.ciphertext_n_bytes() // 2**30)} / ({parallel_mins_to_compute_e:.2f} * 60 * 500) = n_data_locs")
+n_data_locs = math.ceil((cfg.ciphertext_n_bytes() // 2**30) / (parallel_mins_to_compute_e * 60 * 500))
+print(f"        -            = {n_data_locs} separate locations")
