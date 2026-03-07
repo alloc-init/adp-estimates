@@ -225,9 +225,9 @@ if False:
 ## code above confirms that what we obtain has generic form antisymmetric of rk 2 \otimes toeplitz of rank 1
 ## now let's avoid divisions and just add up m terms of this form to check when they generate everything
 
-def build_sum(k, s, m, base_field=F):
-    if k <= 0 or s <= 0 or m <= 0:
-        raise ValueError("k, s and m must be positive integers")
+def build_sum(k, s, m, n, base_field=F):
+    if k <= 0 or s <= 0 or m <= 0 or n <= 0:
+        raise ValueError("k, s, m and n must be positive integers")
 
     t_vars = [f"t_{r}" for r in range(m)]
     a_vars = [f"a_{r}_{i}" for r in range(m) for i in range(k)]
@@ -255,14 +255,20 @@ def build_sum(k, s, m, base_field=F):
         Gamma_terms.append(Gamma)
 
     M = sum(G_terms[r].tensor_product(Gamma_terms[r]) for r in range(m))
-    M_flat = Matrix(
-        P,
-        k * k,
-        2 * s - 1,
-        lambda row, ell: sum(
-            G_terms[r][row // k, row % k] * gamma_terms[r][ell] for r in range(m)
-        ),
-    )
+    if n > M.nrows() or n > M.ncols():
+        raise ValueError("n must be at most k*s")
+    M = M.matrix_from_rows_and_columns(range(n), range(n))
+    n_rows = M.nrows()
+    n_cols = M.ncols()
+    seen = set()
+    unique_nonzero = []
+    for i in range(n_rows):
+        for j in range(n_cols):
+            val = M[i, j]
+            if val != 0 and val not in seen and (-val) not in seen:
+                seen.add(val)
+                unique_nonzero.append(val)
+    M_flat = Matrix(P, len(unique_nonzero), 1, unique_nonzero)
 
     M_flat_polys = [M_flat[i, j] for i in range(M_flat.nrows()) for j in range(M_flat.ncols())]
     vars = P.gens()
@@ -285,15 +291,23 @@ def build_sum(k, s, m, base_field=F):
         "gamma_terms": gamma_terms,
     }
 
-s = 4
-k = 5
 
-for m in range(1, 12):
-    d = build_sum(k, s, m, base_field=F)
-    P = d["ring"]
-    g = P.gens_dict()
-    M = d["M"]
-    J = d["jacobian_flat"]
-    sample = {var: F.random_element() for var in P.gens()}
-    dim_2m_rk = J.subs(sample).rank()
-    print("k = {}, s = {}, m = {}, dim: {}".format(k, s, m, dim_2m_rk))
+for s in range(1, 7):
+    print("Enter s = {}".format(s))
+    for k in range(2, 7):
+        m_upper_bound = k * s // 2
+        m_lower_bound = max(m_upper_bound - k, 1)
+        for m in range(m_lower_bound, m_upper_bound):
+            if m > 14:
+                continue
+            n = 2 * m + 2
+            d = build_sum(k, s, m, n, base_field=F)
+            P = d["ring"]
+            g = P.gens_dict()
+            M = d["M"]
+            J = d["jacobian_flat"]
+            sample = {var: F.random_element() for var in P.gens()}
+            dim_2m_rk = J.subs(sample).rank()
+            full = len(d["M_flat_polys"])
+            if dim_2m_rk + 1 != full:
+                print("Found error at: k = {}, s = {}, m = {}, det: {}, full: {}".format(k, s, m, dim_2m_rk, full))
