@@ -210,17 +210,17 @@ def build_M_antisym(k, s, base_field=F):
 
 
 s = 3
-
-for k in range(4, 7):
-    d = build_M_antisym(k, s, base_field=F)
-    P = d["ring"]
-    g = P.gens_dict()
-    M = d["M"]
-    J = d["jacobian_flat"]
-    sample = {var: F.random_element() for var in P.gens()}
-    dim_OT = J.subs(sample).rank()
-    assert(dim_OT == 2*k - 2)
-    print("antisym embedding, k = {}, s = {}, dim_OT = {}".format(k, s, dim_OT))
+if False:
+    for k in range(4, 7):
+        d = build_M_antisym(k, s, base_field=F)
+        P = d["ring"]
+        g = P.gens_dict()
+        M = d["M"]
+        J = d["jacobian_flat"]
+        sample = {var: F.random_element() for var in P.gens()}
+        dim_OT = J.subs(sample).rank()
+        assert(dim_OT == 2*k - 2)
+        print("antisym embedding, k = {}, s = {}, dim_OT = {}".format(k, s, dim_OT))
 
 ## code above confirms that what we obtain has generic form antisymmetric of rk 2 \otimes toeplitz of rank 1
 ## now let's avoid divisions and just add up m terms of this form to check when they generate everything
@@ -285,10 +285,10 @@ def build_sum(k, s, m, base_field=F):
         "gamma_terms": gamma_terms,
     }
 
-s = 3
-k = 4
+s = 4
+k = 5
 
-for m in range(1, 8):
+for m in range(1, 12):
     d = build_sum(k, s, m, base_field=F)
     P = d["ring"]
     g = P.gens_dict()
@@ -296,4 +296,4 @@ for m in range(1, 8):
     J = d["jacobian_flat"]
     sample = {var: F.random_element() for var in P.gens()}
     dim_2m_rk = J.subs(sample).rank()
-    print("k = {}, s = {}, m = {}, rank 2: {}".format(k, s, m, dim_2m_rk))
+    print("k = {}, s = {}, m = {}, dim: {}".format(k, s, m, dim_2m_rk))
