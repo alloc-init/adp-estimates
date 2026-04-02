@@ -1,3 +1,8 @@
+OK = "\033[92m{}\033[0m"
+ERR = "\033[91m{}\033[0m"
+EQ = OK.format("==")
+NEQ = ERR.format("!=")
+
 F = GF(
     21888242871839275222246405745257275088696311157297823662689037894645226208583
 )
@@ -290,7 +295,7 @@ def build_sum(k, s, m, n, base_field=F):
         "gamma_terms": gamma_terms,
     }
 
-def build_sum_rank_1(k, s, m, n, base_field=F):
+def build_sum_rank_1_antisymm(k, s, m, n, base_field=F):
     if k <= 0 or s <= 0 or m <= 0 or n <= 0:
         raise ValueError("k, s, m and n must be positive integers")
 
@@ -311,7 +316,8 @@ def build_sum_rank_1(k, s, m, n, base_field=F):
         b = vector(P, [gens[f"b_{r}_{i}"] for i in range(k)])
 
         # a \wedge b = a^t b - b^t a (antisymmetric, rank <= 2)
-        G = a.column() * b.row()
+        G = a.column() * b.row() - b.column() * a.row()
+
         gamma = [gens[f"t_{r}"] ** ell for ell in range(2 * s - 1)]
         Gamma = Matrix(P, s, s, lambda i, j: gamma[i + j])
 
@@ -323,7 +329,13 @@ def build_sum_rank_1(k, s, m, n, base_field=F):
     if n > M.nrows() or n > M.ncols():
         raise ValueError("n must be at most k*s")
 
-    M_flat_polys = list(set(M[i, j] for i in range(n) for j in range(n)))
+    s = set()
+    for el in (M[i, j] for i in range(n) for j in range(n)):
+        if not -el in s:
+            s.add(el)
+    s.discard(0)
+
+    M_flat_polys = list(s)
     
     vars = P.gens()
     jacobian_flat = Matrix(
@@ -347,32 +359,121 @@ def build_sum_rank_1(k, s, m, n, base_field=F):
     
 
 
-for s in range(2, 5):
-    print("--")
-    for k in range(2, 5):
-        print("--")
-        for n in range(k * s - k + 1, k * s + 1):
-            if n > 20:
-                continue
-            m_upper_bound = n
-            m_lower_bound = max(m_upper_bound - k - 2, 1)
-            for m in range(m_lower_bound, m_upper_bound + 1):
-                d = build_sum_rank_1(k, s, m, n, base_field=F)
-                P = d["ring"]
-                g = P.gens_dict()
-                M = d["M"]
-                J = d["jacobian_flat"]
-                sample = {var: F.random_element() for var in P.gens()}
-                dim_2m_rk = J.subs(sample).rank()
-                full = len(d["M_flat_polys"])
-                
-                expected_dim = 2 * m * k - (max(k + m - n, 0) ** 2)
-                
-                if expected_dim != dim_2m_rk: 
-                    print(f"Failed at: k={k}, s={s}, n={n}, m={m}, full={full}, dim={dim_2m_rk} != expected_dim={expected_dim}")
-                else: 
-                    print(f"OK     at: k={k}, s={s}, n={n}, m={m}, full={full}, dim={dim_2m_rk},   expected_dim={expected_dim}")
+import itertools as iter
 
+for (s, k) in sorted(iter.product(range(2, 6), range(2, 6)), key=lambda x: x[0] * x[1]):
+    for n in range((k * s - k + 1) >> 1 << 1, k * s + 1, 2):
+        if n <= k: 
+            continue
+        print("--")
+        if n > 16:
+            continue
+        m_upper_bound = (n + 3) // 2
+        m_lower_bound = 1 #  max(m_upper_bound - k - 2, 1)
+        for m in range(m_lower_bound, m_upper_bound + 1):
+            d = build_sum_rank_1_antisymm(k, s, m, n, base_field=F)
+            P = d["ring"]
+            g = P.gens_dict()
+            M = d["M"]
+            J = d["jacobian_flat"]
+            sample = {var: F.random_element() for var in P.gens()}
+            dim_2m_rk = J.subs(sample).rank()
+            full = len(d["M_flat_polys"])
+            
+            expected_full = (k - 1) * n - (k - 1) * k / 2
+           
+            expected_dim = (2 * k - 3 + 1) * m - max(2 * m + k - n, 0) * (2 * m + k - n - 1) / 2 + max(0, 2 * m - n) * (2 * m - n + 1) / 2 
+            
+            efeq = EQ if expected_full == full else NEQ
+            edeq = EQ if expected_dim == dim_2m_rk else NEQ                    
+
+            print(f"at: k={k} s={s} n={n: ^2} m={m: ^2} : full={str(full).rjust(2, ' ')} {efeq} {str(expected_full).ljust(2, ' ')}=expected_full, dim={str(dim_2m_rk).rjust(2, ' ')} {edeq} {str(expected_dim).ljust(2, ' ')}=expected_dim")
+
+
+
+# def build_sum_rank_1(k, s, m, n, base_field=F):
+#     if k <= 0 or s <= 0 or m <= 0 or n <= 0:
+#         raise ValueError("k, s, m and n must be positive integers")
+# 
+#     t_vars = [f"t_{r}" for r in range(m)]
+#     a_vars = [f"a_{r}_{i}" for r in range(m) for i in range(k)]
+#     b_vars = [f"b_{r}_{i}" for r in range(m) for i in range(k)]
+#     names = t_vars + a_vars + b_vars
+# 
+#     P = PolynomialRing(base_field, names=names)
+#     gens = P.gens_dict()
+# 
+#     G_terms = []
+#     gamma_terms = []
+#     Gamma_terms = []
+# 
+#     for r in range(m):
+#         a = vector(P, [gens[f"a_{r}_{i}"] for i in range(k)])
+#         b = vector(P, [gens[f"b_{r}_{i}"] for i in range(k)])
+# 
+#         # a \wedge b = a^t b - b^t a (antisymmetric, rank <= 2)
+#         G = a.column() * b.row()
+#         gamma = [gens[f"t_{r}"] ** ell for ell in range(2 * s - 1)]
+#         Gamma = Matrix(P, s, s, lambda i, j: gamma[i + j])
+# 
+#         G_terms.append(G)
+#         gamma_terms.append(gamma)
+#         Gamma_terms.append(Gamma)
+# 
+#     M = sum(Gamma_terms[r].tensor_product(G_terms[r]) for r in range(m))
+#     if n > M.nrows() or n > M.ncols():
+#         raise ValueError("n must be at most k*s")
+# 
+#     M_flat_polys = list(set(M[i, j] for i in range(n) for j in range(n)))
+#     
+#     vars = P.gens()
+#     jacobian_flat = Matrix(
+#         P,
+#         len(M_flat_polys),
+#         len(vars),
+#         lambda i, j: M_flat_polys[i].derivative(vars[j]),
+#     )
+# 
+#     return {
+#         "ring": P,
+#         "M": M,
+#         "M_flat_polys": M_flat_polys,
+#         "jacobian_flat": jacobian_flat,
+#         "vars": vars,
+#         "G_terms": G_terms,
+#         "Gamma_terms": Gamma_terms,
+#         "gamma_terms": gamma_terms,
+#     }
+# 
+#     
+# 
+# 
+# for s in range(2, 5):
+#     print("--")
+#     for k in range(2, 5):
+#         print("--")
+#         for n in range(k * s - k + 1, k * s + 1):
+#             if n > 20:
+#                 continue
+#             m_upper_bound = n
+#             m_lower_bound = max(m_upper_bound - k - 2, 1)
+#             for m in range(m_lower_bound, m_upper_bound + 1):
+#                 d = build_sum_rank_1(k, s, m, n, base_field=F)
+#                 P = d["ring"]
+#                 g = P.gens_dict()
+#                 M = d["M"]
+#                 J = d["jacobian_flat"]
+#                 sample = {var: F.random_element() for var in P.gens()}
+#                 dim_2m_rk = J.subs(sample).rank()
+#                 full = len(d["M_flat_polys"])
+#                 
+#                 expected_dim = 2 * m * k - (max(k + m - n, 0) ** 2)
+#                 
+#                 if expected_dim != dim_2m_rk: 
+#                     print(f"Failed at: k={k}, s={s}, n={n}, m={m}, full={full}, dim={dim_2m_rk} != expected_dim={expected_dim}")
+#                 else: 
+#                     print(f"OK     at: k={k}, s={s}, n={n}, m={m}, full={full}, dim={dim_2m_rk},   expected_dim={expected_dim}")
+# 
 
 
 # for s in range(1, 6):
