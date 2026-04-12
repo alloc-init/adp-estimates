@@ -295,7 +295,7 @@ def build_sum(k, s, m, n, base_field=F):
         "gamma_terms": gamma_terms,
     }
 
-def build_sum_rank_1_antisymm(k, s, m, n, base_field=F):
+def build_sum_rank_2_antisymm(k, s, m, n, base_field=F):
     if k <= 0 or s <= 0 or m <= 0 or n <= 0:
         raise ValueError("k, s, m and n must be positive integers")
 
@@ -371,7 +371,7 @@ for (s, k) in sorted(iter.product(range(2, 6), range(2, 6)), key=lambda x: x[0] 
         m_upper_bound = (n + 3) // 2
         m_lower_bound = 1 #  max(m_upper_bound - k - 2, 1)
         for m in range(m_lower_bound, m_upper_bound + 1):
-            d = build_sum_rank_1_antisymm(k, s, m, n, base_field=F)
+            d = build_sum_rank_2_antisymm(k, s, m, n, base_field=F)
             P = d["ring"]
             g = P.gens_dict()
             M = d["M"]
